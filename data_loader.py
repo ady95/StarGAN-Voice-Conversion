@@ -19,7 +19,8 @@ spk2acc = {'262': 'Edinburgh', #F
            '251': 'India'} #M
 min_length = 256   # Since we slice 256 frames from each utterance when training.
 # Build a dict useful when we want to get one-hot representation of speakers.
-speakers = ['p262', 'p272', 'p229', 'p232', 'p292', 'p293', 'p360', 'p361', 'p248', 'p251']
+# speakers = ['p262', 'p272', 'p229', 'p232', 'p292', 'p293', 'p360', 'p361', 'p248', 'p251']
+speakers = ['p262', 'fv01', 'fv02', 'fv04', 'fv05', 'fv06', 'fv07', 'fv08', 'fv09', 'fv10', 'fv11', 'fv12', 'fv13', 'fv14', 'fv15']
 spk2idx = dict(zip(speakers, range(len(speakers))))
 
 def to_categorical(y, num_classes=None):
@@ -53,6 +54,7 @@ class MyDataset(data.Dataset):
     def __init__(self, data_dir):
         mc_files = glob.glob(join(data_dir, '*.npy'))
         mc_files = [i for i in mc_files if basename(i)[:4] in speakers] 
+        print(len(mc_files))
         self.mc_files = self.rm_too_short_utt(mc_files)
         self.num_files = len(self.mc_files)
         print("\t Number of training samples: ", self.num_files)
@@ -93,7 +95,7 @@ class MyDataset(data.Dataset):
 
 class TestDataset(object):
     """Dataset for testing."""
-    def __init__(self, data_dir, wav_dir, src_spk='p262', trg_spk='p272'):
+    def __init__(self, data_dir, wav_dir, src_spk='p262', trg_spk='fv12'):
         self.src_spk = src_spk
         self.trg_spk = trg_spk
         self.mc_files = sorted(glob.glob(join(data_dir, '{}*.npy'.format(self.src_spk))))
@@ -134,14 +136,15 @@ def get_loader(data_dir, batch_size=32, mode='train', num_workers=1):
 
 
 if __name__ == '__main__':
-    loader = get_loader('./data/mc/train')
+    loader = get_loader('./data/korean/train')
     data_iter = iter(loader)
     for i in range(10):
-        mc, spk_idx, acc_idx, spk_acc_cat = next(data_iter)
+        # mc, spk_idx, acc_idx, spk_acc_cat = next(data_iter)
+        mc, spk_idx, spk_acc_cat = next(data_iter)
         print('-'*50)
         print(mc.size())
         print(spk_idx.size())
-        print(acc_idx.size())
+        # print(acc_idx.size())
         print(spk_acc_cat.size())
         print(spk_idx.squeeze_())
         print(spk_acc_cat)

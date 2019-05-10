@@ -25,7 +25,7 @@ spk2acc = {'262': 'Edinburgh', #F
            '248': 'India', #F
            '251': 'India'} #M
 
-speakers = ['p262', 'p272', 'p229', 'p232', 'p292', 'p293', 'p360', 'p361', 'p248', 'p251']
+speakers = ['p262', 'fv01', 'fv02', 'fv04', 'fv05', 'fv06', 'fv07', 'fv08', 'fv09', 'fv10', 'fv11', 'fv12', 'fv13', 'fv14', 'fv15']
 spk2idx = dict(zip(speakers, range(len(speakers))))
 
 class TestDataset(object):
@@ -77,7 +77,7 @@ def test(config):
     sampling_rate, num_mcep, frame_period=16000, 36, 5
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    G = Generator().to(device)
+    G = Generator(num_speakers=config.num_speakers).to(device)
     test_loader = TestDataset(config)
     # Restore model
     print(f'Loading the trained models from step {config.resume_iters}...')
@@ -110,7 +110,11 @@ def test(config):
             wav_transformed = world_speech_synthesis(f0=f0_converted, coded_sp=coded_sp_converted, 
                                                     ap=ap, fs=sampling_rate, frame_period=frame_period)
             wav_id = wav_name.split('.')[0]
-            librosa.output.write_wav(join(config.convert_dir, str(config.resume_iters),
+            wave_folder = join(config.convert_dir, str(config.resume_iters), f"{test_loader.trg_spk}")
+            if not os.path.exists(wave_folder):
+                os.makedirs(wave_folder)
+
+            librosa.output.write_wav(join(wave_folder,
                 f'{wav_id}-vcto-{test_loader.trg_spk}.wav'), wav_transformed, sampling_rate)
             if [True, False][0]:
                 wav_cpsyn = world_speech_synthesis(f0=f0, coded_sp=coded_sp, 
@@ -122,16 +126,24 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # Model configuration.
-    parser.add_argument('--num_speakers', type=int, default=10, help='dimension of speaker labels')
-    parser.add_argument('--num_converted_wavs', type=int, default=8, help='number of wavs to convert.')
-    parser.add_argument('--resume_iters', type=int, default=None, help='step to resume for testing.')
+    parser.add_argument('--num_speakers', type=int, default=15, help='dimension of speaker labels')
+    # parser.add_argument('--num_converted_wavs', type=int, default=8, help='number of wavs to convert.')
+    parser.add_argument('--num_converted_wavs', type=int, default=19, help='number of wavs to convert.')
+    parser.add_argument('--resume_iters', type=int, default=100000, help='step to resume for testing.')
     parser.add_argument('--src_spk', type=str, default='p262', help = 'target speaker.')
-    parser.add_argument('--trg_spk', type=str, default='p272', help = 'target speaker.')
+    parser.add_argument('--trg_spk', type=str, default='fv15', help = 'target speaker.')
+    # parser.add_argument('--trg_spk', type=str, default='p251', help = 'target speaker.')
+    # parser.add_argument('--trg_spk', type=str, default='p360', help = 'target speaker.')
+
+    # speakers = ['p262', 'fv01', 'fv02', 'fv04', 'fv05', 'fv06', 'fv07', 'fv08', 'fv09', 'fv10', 'fv11', 'fv12', 'fv13', 'fv14', 'fv15']
+
 
     # Directories.
-    parser.add_argument('--train_data_dir', type=str, default='./data/mc/train')
-    parser.add_argument('--test_data_dir', type=str, default='./data/mc/test')
-    parser.add_argument('--wav_dir', type=str, default="./data/VCTK-Corpus/wav16")
+    parser.add_argument('--train_data_dir', type=str, default='./data/seoul/train')
+    # parser.add_argument('--test_data_dir', type=str, default='./data/korean/test')
+    parser.add_argument('--test_data_dir', type=str, default='./data/seoul/test2/test')
+    parser.add_argument('--wav_dir', type=str, default="./data/seoul/test2/wav")
+    # parser.add_argument('--wav_dir', type=str, default=r"D:\GIT\speech.ko\data2\trimmed_data")
     parser.add_argument('--log_dir', type=str, default='./logs')
     parser.add_argument('--model_save_dir', type=str, default='./models')
     parser.add_argument('--convert_dir', type=str, default='./converted')

@@ -190,3 +190,12 @@ def sample_train_data(dataset_A, dataset_B, n_frames = 128):
     train_data_B = np.array(train_data_B)
 
     return train_data_A, train_data_B
+
+
+
+if __name__ == "__main__":
+    wav_file = r"D:\GIT\speech.ko\data2\trimmed_data\fv01\fv01_t01_s01.wav"
+    sample_rate = 16000
+    f0, _, _, _, coded_sp = world_encode_wav(wav_file, fs=sample_rate)
+    print(f0)
+    print(coded_sp)

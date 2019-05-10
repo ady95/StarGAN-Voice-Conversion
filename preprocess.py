@@ -45,6 +45,7 @@ def split_data(paths):
     return train_paths, test_paths
 
 def get_spk_world_feats(spk_fold_path, mc_dir_train, mc_dir_test, sample_rate=16000):
+    print(spk_fold_path)
     paths = glob.glob(join(spk_fold_path, '*.wav'))
     spk_name = basename(spk_fold_path)
     train_paths, test_paths = split_data(paths)
@@ -52,21 +53,26 @@ def get_spk_world_feats(spk_fold_path, mc_dir_train, mc_dir_test, sample_rate=16
     coded_sps = []
     for wav_file in train_paths:
         f0, _, _, _, coded_sp = world_encode_wav(wav_file, fs=sample_rate)
+        # print(f0, coded_sp)
         f0s.append(f0)
         coded_sps.append(coded_sp)
+
     log_f0s_mean, log_f0s_std = logf0_statistics(f0s)
     coded_sps_mean, coded_sps_std = coded_sp_statistics(coded_sps)
-    np.savez(join(mc_dir_train, spk_name+'_stats.npz'), 
+    npz_path = join(mc_dir_train, spk_name+'_stats.npz')
+    np.savez(npz_path, 
             log_f0s_mean=log_f0s_mean,
             log_f0s_std=log_f0s_std,
             coded_sps_mean=coded_sps_mean,
             coded_sps_std=coded_sps_std)
+    print("after save", npz_path)
     
     for wav_file in tqdm(train_paths):
         wav_nam = basename(wav_file)
         f0, timeaxis, sp, ap, coded_sp = world_encode_wav(wav_file, fs=sample_rate)
         normed_coded_sp = normalize_coded_sp(coded_sp, coded_sps_mean, coded_sps_std)
-        np.save(join(mc_dir_train, wav_nam.replace('.wav', '.npy')), normed_coded_sp, allow_pickle=False)
+        npy_path = join(mc_dir_train, wav_nam.replace('.wav', '.npy'))
+        np.save(npy_path, normed_coded_sp, allow_pickle=False)
     
     for wav_file in tqdm(test_paths):
         wav_nam = basename(wav_file)
@@ -76,7 +82,53 @@ def get_spk_world_feats(spk_fold_path, mc_dir_train, mc_dir_test, sample_rate=16
     return 0
 
 
+# test용 npy 생성
+def create_npy(wav_folder_path, npy_folder_path, sample_rate=16000):
+    test_paths = glob.glob(join(wav_folder_path, '*.wav'))
+    # spk_name = basename(wav_folder_path)
+
+    f0s = []
+    coded_sps = []
+    for wav_file in test_paths:
+        f0, _, _, _, coded_sp = world_encode_wav(wav_file, fs=sample_rate)
+        f0s.append(f0)
+        coded_sps.append(coded_sp)
+    log_f0s_mean, log_f0s_std = logf0_statistics(f0s)
+    coded_sps_mean, coded_sps_std = coded_sp_statistics(coded_sps)
+    # np.savez(join(npy_folder_path, 'stats.npz'), 
+    #         log_f0s_mean=log_f0s_mean,
+    #         log_f0s_std=log_f0s_std,
+    #         coded_sps_mean=coded_sps_mean,
+    #         coded_sps_std=coded_sps_std)
+
+    for wav_file in tqdm(test_paths):
+        wav_nam = basename(wav_file)
+        f0, timeaxis, sp, ap, coded_sp = world_encode_wav(wav_file, fs=sample_rate)
+        normed_coded_sp = normalize_coded_sp(coded_sp, coded_sps_mean, coded_sps_std)
+        np.save(join(npy_folder_path, "p262_" + wav_nam.replace('.wav', '.npy')), normed_coded_sp, allow_pickle=False)
+    
+
+
 if __name__ == '__main__':
+    
+    # wav_folder_path = r"D:\GIT\StarGAN-Voice-Conversion\data\korean\test2\wav"
+
+    # for filename in os.listdir(wav_folder_path):
+    #     print(filename)
+    #     new_filename = f"p262_{filename}"
+    #     wav_path = os.path.join(wav_folder_path, filename)
+    #     new_path = os.path.join(wav_folder_path, new_filename)
+    #     os.rename(wav_path, new_path)
+
+
+    # exit()
+
+    # create_npy(r"D:\GIT\StarGAN-Voice-Conversion\data\korean\test2\wav", 
+    #            r"D:\GIT\StarGAN-Voice-Conversion\data\korean\test2\test")
+
+
+    # exit()
+
     parser = argparse.ArgumentParser()
 
 
@@ -103,18 +155,19 @@ if __name__ == '__main__':
     num_workers = argv.num_workers if argv.num_workers is not None else cpu_count()
 
     # The original wav in VCTK is 48K, first we want to resample to 16K
-    resample_to_16k(origin_wavpath, target_wavpath, num_workers=num_workers)
+    # resample_to_16k(origin_wavpath, target_wavpath, num_workers=num_workers)
 
-    # WE only use 10 speakers listed below for this experiment.
-    speaker_used = ['262', '272', '229', '232', '292', '293', '360', '361', '248', '251']
-    speaker_used = ['p'+i for i in speaker_used]
+    # polly(p262) 포함 모두 15가지 음성 상호 변조 처리 (모두 20대 여성)
+    speaker_used = ['p262', 'fv01', 'fv02', 'fv04', 'fv05', 'fv06', 'fv07', 'fv08', 'fv09', 'fv10', 'fv11', 'fv12', 'fv13', 'fv14', 'fv15']
+    # speaker_used = ['p'+i for i in speaker_used]
 
     ## Next we are to extract the acoustic features (MCEPs, lf0) and compute the corresponding stats (means, stds). 
     # Make dirs to contain the MCEPs
     os.makedirs(mc_dir_train, exist_ok=True)
     os.makedirs(mc_dir_test, exist_ok=True)
 
-    num_workers = len(speaker_used) #cpu_count()
+    # num_workers = len(speaker_used) #cpu_count()
+    # num_workers = 4
     print("number of workers: ", num_workers)
     executor = ProcessPoolExecutor(max_workers=num_workers)
 
